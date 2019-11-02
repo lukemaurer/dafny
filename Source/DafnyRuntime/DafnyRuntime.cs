@@ -806,6 +806,42 @@ namespace Dafny
 
   public abstract class Sequence<T>
   {
+    protected enum ElementType {
+      Bool, Char, Byte, SByte, Short, UShort, Int, UInt, Long, ULong, Float, Double, Object
+    }
+
+    protected static readonly ElementType elementType = FindElementType();
+
+    private static ElementType FindElementType() {
+      if (typeof(T) == typeof(bool)) {
+        return ElementType.Bool;
+      } else if (typeof(T) == typeof(char)) {
+        return ElementType.Char;
+      } else if (typeof(T) == typeof(byte)) {
+        return ElementType.Byte;
+      } else if (typeof(T) == typeof(sbyte)) {
+        return ElementType.SByte;
+      } else if (typeof(T) == typeof(short)) {
+        return ElementType.Short;
+      } else if (typeof(T) == typeof(ushort)) {
+        return ElementType.UShort;
+      } else if (typeof(T) == typeof(int)) {
+        return ElementType.Int;
+      } else if (typeof(T) == typeof(uint)) {
+        return ElementType.UInt;
+      } else if (typeof(T) == typeof(long)) {
+        return ElementType.Long;
+      } else if (typeof(T) == typeof(ulong)) {
+        return ElementType.ULong;
+      } else if (typeof(T) == typeof(float)) {
+        return ElementType.Float;
+      } else if (typeof(T) == typeof(double)) {
+        return ElementType.Double;
+      } else {
+        return ElementType.Object;
+      }
+    }
+
     public static Sequence<T> Empty {
       get {
         return new ArraySequence<T>(new T[0]);
@@ -905,11 +941,114 @@ namespace Dafny
       }
     }
     bool EqualUntil(Sequence<T> other, int n) {
-      T[] elmts = Elements, otherElmts = other.Elements;
-      for (int i = 0; i < n; i++) {
-        if (!Dafny.Helpers.AreEqual(elmts[i], otherElmts[i]))
-          return false;
+      // Avoid boxing and unboxing by specializing this loop for each primitive type
+      switch (elementType) {
+        case ElementType.Bool: {
+          bool[] elmts = (bool[])(object)Elements, otherElmts = (bool[])(object)other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (elmts[i] != otherElmts[i])
+              return false;
+          }
+          break;
+        }
+        case ElementType.Char: {
+          char[] elmts = (char[])(object)Elements, otherElmts = (char[])(object)other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (elmts[i] != otherElmts[i])
+              return false;
+          }
+          break;
+        }
+        case ElementType.Byte: {
+          byte[] elmts = (byte[])(object)Elements, otherElmts = (byte[])(object)other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (elmts[i] != otherElmts[i])
+              return false;
+          }
+          break;
+        }
+        case ElementType.SByte: {
+          sbyte[] elmts = (sbyte[])(object)Elements, otherElmts = (sbyte[])(object)other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (elmts[i] != otherElmts[i])
+              return false;
+          }
+          break;
+        }
+        case ElementType.Short: {
+          short[] elmts = (short[])(object)Elements, otherElmts = (short[])(object)other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (elmts[i] != otherElmts[i])
+              return false;
+          }
+          break;
+        }
+        case ElementType.UShort: {
+          ushort[] elmts = (ushort[])(object)Elements, otherElmts = (ushort[])(object)other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (elmts[i] != otherElmts[i])
+              return false;
+          }
+          break;
+        }
+        case ElementType.Int: {
+          int[] elmts = (int[])(object)Elements, otherElmts = (int[])(object)other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (elmts[i] != otherElmts[i])
+              return false;
+          }
+          break;
+        }
+        case ElementType.UInt: {
+          uint[] elmts = (uint[])(object)Elements, otherElmts = (uint[])(object)other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (elmts[i] != otherElmts[i])
+              return false;
+          }
+          break;
+        }
+        case ElementType.Long: {
+          long[] elmts = (long[])(object)Elements, otherElmts = (long[])(object)other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (elmts[i] != otherElmts[i])
+              return false;
+          }
+          break;
+        }
+        case ElementType.ULong: {
+          ulong[] elmts = (ulong[])(object)Elements, otherElmts = (ulong[])(object)other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (elmts[i] != otherElmts[i])
+              return false;
+          }
+          break;
+        }
+        case ElementType.Float: {
+          float[] elmts = (float[])(object)Elements, otherElmts = (float[])(object)other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (elmts[i] != otherElmts[i])
+              return false;
+          }
+          break;
+        }
+        case ElementType.Double: {
+          double[] elmts = (double[])(object)Elements, otherElmts = (double[])(object)other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (elmts[i] != otherElmts[i])
+              return false;
+          }
+          break;
+        }
+        case ElementType.Object: {
+          T[] elmts = Elements, otherElmts = other.Elements;
+          for (int i = 0; i < n; i++) {
+            if (!Dafny.Helpers.AreEqual(elmts[i], otherElmts[i]))
+              return false;
+          }
+          break;
+        }
       }
+
       return true;
     }
     public bool IsProperPrefixOf(Sequence<T> other) {
