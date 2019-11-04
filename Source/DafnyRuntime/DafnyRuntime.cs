@@ -940,11 +940,7 @@ namespace Dafny
       return false;
     }
     public Sequence<T> Take(long m) {
-      if (Elements.LongLength == m)
-        return this;
-      T[] a = new T[m];
-      System.Array.Copy(Elements, a, m);
-      return new ArraySequence<T>(a);
+      return Subsequence(0, m);
     }
     public Sequence<T> Take(ulong n) {
       return Take((long)n);
@@ -953,11 +949,7 @@ namespace Dafny
       return Take((long)n);
     }
     public Sequence<T> Drop(long m) {
-      if (m == 0)
-        return this;
-      T[] a = new T[Elements.Length - m];
-      System.Array.Copy(Elements, m, a, 0, Elements.Length - m);
-      return new ArraySequence<T>(a);
+      return Subsequence(m, LongCount);
     }
     public Sequence<T> Drop(ulong n) {
       return Drop((long)n);
@@ -967,7 +959,7 @@ namespace Dafny
         return this;
       return Drop((long)n);
     }
-    public Sequence<T> Subsequence(long lo, long hi) {
+    public virtual Sequence<T> Subsequence(long lo, long hi) {
       if (lo == 0 && hi == Elements.Length) {
         return this;
       }
@@ -1019,13 +1011,23 @@ namespace Dafny
   }
   internal class ConcatSequence<T> : Sequence<T> {
     private Sequence<T> left, right;
+    private readonly long off, bound;
     private T[] elmts = null;
     private readonly long count;
 
-    internal ConcatSequence(Sequence<T> left, Sequence<T> right) {
+    // PRECONDITION: lo < left.LongCount and either hi == -1 or hi > left.LongCount
+    // (otherwise we don't need a ConcatSequence!)
+    internal ConcatSequence(Sequence<T> left, Sequence<T> right, long lo = 0, long hi = -1) {
       this.left = left;
       this.right = right;
-      this.count = left.LongCount + right.LongCount;
+      
+      if (hi == -1) {
+        hi = left.LongCount + right.LongCount;
+      }
+      
+      off = lo;
+      bound = hi;
+      count = hi - lo;
     }
 
     public override T[] Elements {
@@ -1047,13 +1049,34 @@ namespace Dafny
       }
     }
 
+    public override Sequence<T> Subsequence(long newLo, long newHi) {
+      if (newLo == 0 && newHi == count) {
+        return this;
+      } else if (elmts != null) {
+        // Don't adjust because we already applied the offset when we calculated elmts
+        return new ArraySequence<T>(elmts).Subsequence(newLo, newHi);
+      } else {
+        var leftCount = left.LongCount;
+        // Adjust by existing offset
+        newLo += off;
+        newHi += off;
+        if (newHi <= leftCount) {
+          return left.Subsequence(newLo, newHi);
+        } else if (newLo >= leftCount) {
+          return right.Subsequence(newLo - leftCount, newHi - leftCount);
+        } else {
+          return new ConcatSequence<T>(left, right, newLo, newHi);
+        }
+      }
+    }
+
     private T[] ComputeElements() {
       // Traverse the tree formed by all descendants which are ConcatSequences
 
       var list = new List<T>();
       var toVisit = new Stack<Sequence<T>>();
-      toVisit.Push(right);
-      toVisit.Push(left);
+      toVisit.Push(right.Take(bound - left.LongCount));
+      toVisit.Push(left.Drop(off));
 
       while (toVisit.Count != 0) {
         var seq = toVisit.Pop();
@@ -1062,8 +1085,10 @@ namespace Dafny
           if (cs.elmts != null) {
             list.AddRange(cs.elmts);
           } else {
-            toVisit.Push(cs.right);
-            toVisit.Push(cs.left);
+            // Due to the invariant (see constructor), we know that cs.bound > cs.left.LongCount
+            toVisit.Push(cs.right.Take(cs.bound - cs.left.LongCount));
+            // Similarly, we know that cs.off < cs.left.LongCount
+            toVisit.Push(cs.left.Drop(cs.off));
           }
         } else {
           list.AddRange(seq.Elements);
